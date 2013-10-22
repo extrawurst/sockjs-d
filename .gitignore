@@ -1,3 +1,11 @@
 *.sln
 *.visualdproj
 /.dub/*
+/*.suo
+/*.dll
+
+/sockjs-d_d.exe
+
+/sockjs-d_d.exe_cv
+
+/*.pdb
