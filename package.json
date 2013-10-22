@@ -2,8 +2,9 @@
 	"name": "sockjs-d",
 	"version": "~master",
 	"description": "SockJs implementation for vibe.d",
-	"homepage": "http://example.org",
+	"homepage": "https://github.com/Extrawurst/sockjs-d",
 	"copyright": "Copyright © 2013, Stephan Dilly",
+	"license": "MIT",
 	"authors": [
 		"Stephan Dilly"
 	],
