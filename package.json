@@ -1,0 +1,13 @@
+{
+	"name": "sockjs-d",
+	"version": "~master",
+	"description": "SockJs implementation for vibe.d",
+	"homepage": "http://example.org",
+	"copyright": "Copyright © 2013, Stephan Dilly",
+	"authors": [
+		"Stephan Dilly"
+	],
+	"dependencies": {
+		"vibe-d": ">=0.7.12"
+	}
+}
