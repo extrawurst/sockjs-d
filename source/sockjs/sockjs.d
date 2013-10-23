@@ -16,7 +16,7 @@ public:
 	
 	void handleRequest(HTTPServerRequest req, HTTPServerResponse res)
 	{
-		auto url = req.url;
+		auto url = req.requestURL;
 		
 		if(url.length >= m_options.prefix.length)
 		{
@@ -35,14 +35,18 @@ public:
 	
 	private void handleSockJs(string[] _urlElements, string _body, HTTPServerResponse _res)
 	{
-		writefln("handle: ",_urlElements);
+		writefln("handle: %s",_urlElements);
+
+		_res.headers["Access-Control-Allow-Origin"] = "http://localhost:8080";
+		_res.headers["Access-Control-Allow-Credentials"] = "true";
+		_res.headers["Connection"] = "keep-alive";
+		_res.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0";
 
 		if(_urlElements.length == 1 && _urlElements[0] == "info")
 		{
-			_res.headers["access-control-allow-origin"] = "*";
-			_res.headers["access-control-allow-credentials"] = "false";
-
-			_res.writeJsonBody(q"{{"websocket":"false","origins":["*:*"],"cookie_needed":"false"}}");
+			_res.headers["Content-Type"] = "application/json; charset=UTF-8";
+			_res.bodyWriter.write(q"{{"websocket":"false","origins":["*:*"],"cookie_needed":"false"}}");
+			_res.bodyWriter.finalize();
 		}
 		else if(_urlElements.length == 3)
 		{
@@ -52,7 +56,7 @@ public:
 
 			if(userId in m_connections)
 			{
-				writefln("got: ",method);
+				writefln("got: %s",method);
 
 				auto conn = m_connections[userId];
 
@@ -68,7 +72,9 @@ public:
 
 					m_connections[userId] = newConn;
 
-					_res.writeBody("o");
+					_res.headers["Content-Type"] = "application/javascript; charset=UTF-8";
+					_res.bodyWriter.write("o");
+					_res.bodyWriter.flush();
 				}
 				else
 					throw new Exception("wrong connect method");
@@ -95,7 +101,7 @@ public:
 	
 	const string remoteAddress() {return "";}
 	const int remotePort() {return 0;}
-	
+
 	public this()
 	{
 		m_pollSignal = getEventDriver().createManualEvent();
@@ -104,7 +110,7 @@ public:
 	public void write(string _msg)
 	{
 		m_outQueue ~= _msg;
-		
+
 		m_pollSignal.emit();
 	}
 	
@@ -135,10 +141,15 @@ public:
 		
 			if(m_outQueue.length > 0)
 			{
+				writefln("long poll signaled");
+
 				FlushQueue(res);
 			}
 			else
+			{
+				writefln("heartbeat");
 				res.writeBody("h");
+			}
 		}
 	}
 	

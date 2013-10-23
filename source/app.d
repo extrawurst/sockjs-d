@@ -4,7 +4,8 @@ import std.stdio;
 
 void logRequest(HTTPServerRequest req, HTTPServerResponse res)
 {
-	writefln("url: '%s' peer: '%s' method: '%s'", req.url, req.peer, req.method);
+	writefln("url: '%s' peer: '%s' method: '%s'", req.requestURL, req.peer, req.method);
+	//writefln("-> header: '%s'", req.headers);
 }
 
 static this()
@@ -16,6 +17,7 @@ static this()
 	auto router = new URLRouter;
 		router
 		.any("/index.html", vibe.http.fileserver.serveStaticFile("index.html",new HTTPFileServerSettings()))
+		.any("/sockjs.js", vibe.http.fileserver.serveStaticFile("sockjs.js",new HTTPFileServerSettings()))
 		.any("*", &logRequest)
 		.any("*", &sjs.handleRequest);
 	
@@ -36,6 +38,6 @@ static this()
 	};
 	
 	auto settings = new HTTPServerSettings;
-	settings.port = 8080;
+	settings.port = 8989;
 	listenHTTP(settings, router);
 }
