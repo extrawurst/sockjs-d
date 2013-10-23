@@ -3,6 +3,7 @@ module sockjs.sockjs;
 import vibe.d;
 import std.stdio;
 import std.string;
+import std.regex;
 
 public class Server
 {
@@ -35,7 +36,7 @@ public:
 	
 	private void handleSockJs(string[] _urlElements, string _body, HTTPServerResponse _res)
 	{
-		writefln("handle: %s",_urlElements);
+		//writefln("handle: %s",_urlElements);
 
 		_res.headers["Access-Control-Allow-Origin"] = "http://localhost:8080";
 		_res.headers["Access-Control-Allow-Credentials"] = "true";
@@ -56,8 +57,6 @@ public:
 
 			if(userId in m_connections)
 			{
-				writefln("got: %s",method);
-
 				auto conn = m_connections[userId];
 
 				conn.handleRequest(method == "xhr_send",_body,_res);
@@ -111,6 +110,7 @@ public:
 	{
 		m_outQueue ~= _msg;
 
+		writefln("emit");
 		m_pollSignal.emit();
 	}
 	
@@ -122,8 +122,16 @@ public:
 		}
 		else
 		{
-			//TODO: parse json
-			OnData(_body);
+			if(_body.length > 4)
+			{
+				auto arr = _body[2..$-2];
+
+				foreach(e; splitter(arr, regex(q"{","}")))
+					OnData(e);
+			}
+
+			res.statusCode = 202;
+			res.writeVoidBody();
 		}
 	}
 
@@ -155,7 +163,7 @@ public:
 	
 	private void FlushQueue(HTTPServerResponse res)
 	{
-		string outbody = "[";
+		string outbody = "a[";
 
 		foreach(s; m_outQueue)
 			outbody ~= '"'~s~'"'~',';
@@ -165,7 +173,7 @@ public:
 
 		writefln("flush: '%s'",outbody);
 
-		res.writeBody(outbody,"");
+		res.writeBody(outbody);
 
 		m_outQueue.length = 0;
 	}

@@ -26,15 +26,14 @@ static this()
 		
 		conn.OnData = (string message) {
 		
-			writefln("msg: ", message);
+			writefln("msg: %s", message);
 			
-			conn.write("pong");
+			conn.write(message);
 		};
 		
 		conn.OnClose = () {
 			writefln("closed conn: ", conn.remoteAddress);
 		};
-		
 	};
 	
 	auto settings = new HTTPServerSettings;
