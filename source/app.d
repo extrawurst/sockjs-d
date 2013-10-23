@@ -4,7 +4,7 @@ import std.stdio;
 
 void logRequest(HTTPServerRequest req, HTTPServerResponse res)
 {
-	writefln("url: '%s' peer: '%s' method: '%s' host: '%s'", req.url, req.peer, req.method, req.host);
+	writefln("url: '%s' peer: '%s' method: '%s'", req.url, req.peer, req.method);
 }
 
 static this()
@@ -15,6 +15,7 @@ static this()
 
 	auto router = new URLRouter;
 		router
+		.any("/index.html", vibe.http.fileserver.serveStaticFile("index.html",new HTTPFileServerSettings()))
 		.any("*", &logRequest)
 		.any("*", &sjs.handleRequest);
 	
@@ -25,7 +26,7 @@ static this()
 		
 			writefln("msg: ", message);
 			
-			conn.write(message);
+			conn.write("pong");
 		};
 		
 		conn.OnClose = () {

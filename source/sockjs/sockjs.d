@@ -12,8 +12,6 @@ public:
 	this(SockJS.Options _options)
 	{
 		m_options = _options;
-		
-		m_connections["foo"] = new Connection();
 	}
 	
 	void handleRequest(HTTPServerRequest req, HTTPServerResponse res)
@@ -23,11 +21,7 @@ public:
 		if(url.length >= m_options.prefix.length)
 		{
 			if(url[0..m_options.prefix.length] == m_options.prefix)
-			{
-				if(req.method == HTTPMethod.POST)
-				{
-				}
-				
+			{	
 				munch(url, m_options.prefix);
 				
 				string[] elements = url.split("/");
@@ -35,23 +29,53 @@ public:
 				string _body = cast(string)req.bodyReader.readAll();
 					
 				handleSockJs(elements,_body,res);
-				
-				//writefln("req to sockjs: %s",url);
-				//
-				//m_connections["foo"].longPoll(req,res);
-			}
-			else
-			{
-				//writefln("long poll quit");
-			    //
-				//m_connections["foo"].write(url);
 			}
 		}
 	}
 	
 	private void handleSockJs(string[] _urlElements, string _body, HTTPServerResponse _res)
 	{
-		writefln("body: %s", _body);
+		writefln("handle: ",_urlElements);
+
+		if(_urlElements.length == 1 && _urlElements[0] == "info")
+		{
+			_res.headers["access-control-allow-origin"] = "*";
+			_res.headers["access-control-allow-credentials"] = "false";
+
+			_res.writeJsonBody(q"{{"websocket":"false","origins":["*:*"],"cookie_needed":"false"}}");
+		}
+		else if(_urlElements.length == 3)
+		{
+			string serverId = _urlElements[0];
+			string userId = _urlElements[1];
+			string method = _urlElements[2];
+
+			if(userId in m_connections)
+			{
+				writefln("got: ",method);
+
+				auto conn = m_connections[userId];
+
+				conn.handleRequest(method == "xhr_send",_body,_res);
+			}
+			else
+			{
+				if(method == "xhr")
+				{
+					auto newConn = new Connection();
+				
+					OnConnection(newConn);
+
+					m_connections[userId] = newConn;
+
+					_res.writeBody("o");
+				}
+				else
+					throw new Exception("wrong connect method");
+			}
+		}
+		else
+			throw new Exception("wrong param count");
 	}
 	
 //private:
@@ -72,38 +96,69 @@ public:
 	const string remoteAddress() {return "";}
 	const int remotePort() {return 0;}
 	
-	this()
+	public this()
 	{
 		m_pollSignal = getEventDriver().createManualEvent();
 	}
 	
-	void write(string _msg)
+	public void write(string _msg)
 	{
 		m_outQueue ~= _msg;
 		
 		m_pollSignal.emit();
 	}
 	
-	void longPoll(HTTPServerRequest req, HTTPServerResponse res)
+	private void handleRequest(bool _send, string _body, HTTPServerResponse res)
 	{
-		m_outQueue.length = 0;
-		
-		// if data
-		// -> reply
-		// start timer
-		// 
-		m_pollSignal.wait(dur!"seconds"(10), m_pollSignal.emitCount);
-		
-		if(m_outQueue.length > 0)
+		if(!_send)
 		{
-			res.writeBody(m_outQueue[0],"");
-			
-			m_outQueue = m_outQueue[1..$];
+			longPoll(res);
 		}
 		else
-			res.writeBody("heartbeat","");
+		{
+			//TODO: parse json
+			OnData(_body);
+		}
+	}
+
+	private void longPoll(HTTPServerResponse res)
+	{ 
+		if(m_outQueue.length > 0)
+		{
+			FlushQueue(res);
+		}
+		else
+		{
+			writefln("long poll");
+
+			m_pollSignal.wait(dur!"seconds"(10), m_pollSignal.emitCount);
+		
+			if(m_outQueue.length > 0)
+			{
+				FlushQueue(res);
+			}
+			else
+				res.writeBody("h");
+		}
 	}
 	
+	private void FlushQueue(HTTPServerResponse res)
+	{
+		string outbody = "[";
+
+		foreach(s; m_outQueue)
+			outbody ~= '"'~s~'"'~',';
+
+		outbody = outbody[0..$-1];
+		outbody ~= ']';
+
+		writefln("flush: '%s'",outbody);
+
+		res.writeBody(outbody,"");
+
+		m_outQueue.length = 0;
+	}
+
 //private:
 	EventOnClose OnClose;
 	EventOnMsg OnData;
