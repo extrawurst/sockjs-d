@@ -21,6 +21,9 @@ public:
 		m_queueMutex = new TaskMutex;
 		m_timeoutMutex = new TaskMutex;
 		m_pollCondition = new TaskCondition(m_timeoutMutex);
+
+		m_timeoutTimer = getEventDriver().createTimer(&timeout);
+		resetTimeout();
 	}
 
 	///
@@ -37,6 +40,7 @@ public:
 		}
 	}
 
+	///
 	void close(int _code, string _msg)
 	{
 		m_closeMsg.code = _code;
@@ -89,8 +93,20 @@ private:
 	}
 
 	///
+	void timeout()
+	{
+		m_onClose();
+
+		m_timeoutTimer.stop();
+
+		m_state = State.Closing;
+	}
+
+	///
 	void longPoll(HTTPServerResponse res)
 	{
+		m_timeoutTimer.rearm(m_options.disconnect_delay.msecs);
+
 		if(isDataPending)
 		{
 			flushQueue(res);
@@ -104,7 +120,13 @@ private:
 
 			if(m_state == State.Closing)
 			{
-				res.writeBody(format(q"{c[%s,"%s"]\n}", m_closeMsg.code, m_closeMsg.msg));
+				try{
+					res.writeBody(format(q"{c[%s,"%s"]\n}", m_closeMsg.code, m_closeMsg.msg));
+				}
+				catch(Throwable e)
+				{
+					debug writefln("closing error: %s",e);
+				}
 			}
 			else
 			{
@@ -124,6 +146,13 @@ private:
 		}
 	}
 
+	///
+	void resetTimeout()
+	{
+		m_timeoutTimer.rearm(m_options.disconnect_delay.msecs);
+	}
+
+	///
 	@property const bool isDataPending() {synchronized(m_queueMutex){return m_outQueue.length > 0;}}
 
 	///
@@ -173,4 +202,5 @@ private:
 	SockJS.Options*	m_options;
 	State			m_state = State.Open;
 	CloseMsg		m_closeMsg;
+	Timer			m_timeoutTimer;
 }
