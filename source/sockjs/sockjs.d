@@ -103,7 +103,8 @@ public:
 
 	public this()
 	{
-		m_pollSignal = getEventDriver().createManualEvent();
+		m_timeoutMutex = new TaskMutex;
+		m_pollCondition = new TaskCondition(m_timeoutMutex);
 	}
 	
 	public void write(string _msg)
@@ -111,7 +112,8 @@ public:
 		m_outQueue ~= _msg;
 
 		writefln("emit");
-		m_pollSignal.emit();
+
+		m_pollCondition.notifyAll();
 	}
 	
 	private void handleRequest(bool _send, string _body, HTTPServerResponse res)
@@ -145,7 +147,8 @@ public:
 		{
 			writefln("long poll");
 
-			m_pollSignal.wait(dur!"seconds"(10), m_pollSignal.emitCount);
+			synchronized(m_timeoutMutex)
+				m_pollCondition.wait(10.seconds);
 		
 			if(m_outQueue.length > 0)
 			{
@@ -156,6 +159,7 @@ public:
 			else
 			{
 				writefln("heartbeat");
+
 				res.writeBody("h");
 			}
 		}
@@ -182,7 +186,8 @@ public:
 	EventOnClose OnClose;
 	EventOnMsg OnData;
 private:
-	ManualEvent m_pollSignal;
+	TaskMutex m_timeoutMutex;
+	TaskCondition m_pollCondition;
 	string[] m_outQueue;
 }
 	
