@@ -4,6 +4,7 @@ import vibe.d;
 import std.stdio;
 import std.string;
 import std.regex;
+import std.array;
 
 import sockjs.sockjs;
 
@@ -66,13 +67,16 @@ private:
 	///
 	void flushQueue(HTTPServerResponse res)
 	{
-		//TODO: use lock for queue
-
-		string outbody = "a[";
+		auto buffer = appender("a[");
 
 		foreach(s; m_outQueue)
-			outbody ~= '"'~s~'"'~',';
+		{
+			buffer ~= '"';
+			buffer ~= s;
+			buffer ~= "\",";
+		}
 
+		string outbody = buffer.data;
 		outbody = outbody[0..$-1];
 		outbody ~= "]\n";
 
@@ -100,12 +104,10 @@ private:
 
 			if(m_state == State.Closing)
 			{
-				//TODO: use format
-				res.writeBody("c["~ to!string(m_closeMsg.code) ~",\""~m_closeMsg.msg~"\"]\n");
+				res.writeBody(format(q"{c[%s,"%s"]\n}", m_closeMsg.code, m_closeMsg.msg));
 			}
 			else
 			{
-				//TODO: use lock for queue
 				if(isDataPending)
 				{
 					//debug writefln("long poll signaled");
