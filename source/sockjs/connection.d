@@ -17,6 +17,7 @@ public:
 	{
 		m_remotePeer = _remotePeer;
 		m_options = _options;
+		m_queueMutex = new TaskMutex;
 		m_timeoutMutex = new TaskMutex;
 		m_pollCondition = new TaskCondition(m_timeoutMutex);
 	}
@@ -26,8 +27,8 @@ public:
 	{
 		if(isOpen)
 		{
-			//TODO: use lock for queue
-			m_outQueue ~= _msg;
+			synchronized(m_queueMutex)
+				m_outQueue ~= _msg;
 
 			//debug writefln("emit");
 
@@ -79,13 +80,14 @@ private:
 
 		res.writeBody(outbody);
 
-		m_outQueue.length = 0;
+		synchronized(m_queueMutex)
+			m_outQueue.length = 0;
 	}
 
 	///
 	void longPoll(HTTPServerResponse res)
-	{ 
-		if(m_outQueue.length > 0)
+	{
+		if(isDataPending)
 		{
 			flushQueue(res);
 		}
@@ -104,7 +106,7 @@ private:
 			else
 			{
 				//TODO: use lock for queue
-				if(m_outQueue.length > 0)
+				if(isDataPending)
 				{
 					//debug writefln("long poll signaled");
 
@@ -119,6 +121,8 @@ private:
 			}
 		}
 	}
+
+	@property const bool isDataPending() {synchronized(m_queueMutex){return m_outQueue.length > 0;}}
 
 	///
 	package void handleRequest(bool _send, string _body, HTTPServerResponse res)
@@ -161,6 +165,7 @@ private:
 
 	string			m_remotePeer;
 	TaskMutex		m_timeoutMutex;
+	TaskMutex		m_queueMutex;
 	TaskCondition	m_pollCondition;
 	string[]		m_outQueue;
 	SockJS.Options*	m_options;
