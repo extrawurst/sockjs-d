@@ -5,17 +5,19 @@ import std.stdio;
 import std.string;
 import std.regex;
 
+///
 public class Server
 {
 public:
-	alias void delegate(Connection) EventOnConnection;
 
+	///
 	this(SockJS.Options _options)
 	{
 		m_options = _options;
 	}
 	
-	void handleRequest(HTTPServerRequest req, HTTPServerResponse res)
+	///
+	public void handleRequest(HTTPServerRequest req, HTTPServerResponse res)
 	{
 		auto url = req.requestURL;
 		
@@ -29,12 +31,13 @@ public:
 				
 				string _body = cast(string)req.bodyReader.readAll();
 					
-				handleSockJs(elements,_body,res);
+				handleSockJs(elements,_body,res,req.peer);
 			}
 		}
 	}
-	
-	private void handleSockJs(string[] _urlElements, string _body, HTTPServerResponse _res)
+
+	///
+	private void handleSockJs(string[] _urlElements, string _body, HTTPServerResponse _res, string _remotePeer)
 	{
 		//writefln("handle: %s",_urlElements);
 
@@ -45,9 +48,7 @@ public:
 
 		if(_urlElements.length == 1 && _urlElements[0] == "info")
 		{
-			_res.headers["Content-Type"] = "application/json; charset=UTF-8";
-			_res.bodyWriter.write(q"{{"websocket":"false","origins":["*:*"],"cookie_needed":"false"}}");
-			_res.bodyWriter.finalize();
+			_res.writeBody(q"{{"websocket":"false","origins":["*:*"],"cookie_needed":"false"}}","application/json; charset=UTF-8");
 		}
 		else if(_urlElements.length == 3)
 		{
@@ -65,15 +66,13 @@ public:
 			{
 				if(method == "xhr")
 				{
-					auto newConn = new Connection();
+					auto newConn = new Connection(&m_options, _remotePeer);
 				
-					OnConnection(newConn);
+					m_onConnection(newConn);
 
 					m_connections[userId] = newConn;
 
-					_res.headers["Content-Type"] = "application/javascript; charset=UTF-8";
-					_res.bodyWriter.write("o");
-					_res.bodyWriter.flush();
+					_res.writeBody("o\n","application/javascript; charset=UTF-8");
 				}
 				else
 					throw new Exception("wrong connect method");
@@ -82,40 +81,44 @@ public:
 		else
 			throw new Exception("wrong param count");
 	}
-	
-//private:
-	EventOnConnection OnConnection;
+
+	///
+	alias void delegate(Connection) EventOnConnection;
+
+	///
+	@property public void onConnection(EventOnConnection _callback) { m_onConnection = _callback; }
 	
 private:
+	EventOnConnection	m_onConnection;
 	SockJS.Options		m_options;
 	Connection[string] 	m_connections;
 }
 
+///
 public class Connection
 {
 public:
-	
-	alias void delegate() EventOnClose;
-	alias void delegate(string _msg) EventOnMsg;
-	
-	const string remoteAddress() {return "";}
-	const int remotePort() {return 0;}
 
-	public this()
+	///
+	public this(SockJS.Options* _options, string _remotePeer)
 	{
+		m_remotePeer = _remotePeer;
+		m_options = _options;
 		m_timeoutMutex = new TaskMutex;
 		m_pollCondition = new TaskCondition(m_timeoutMutex);
 	}
 	
+	///
 	public void write(string _msg)
 	{
 		m_outQueue ~= _msg;
 
-		writefln("emit");
+		//debug writefln("emit");
 
 		m_pollCondition.notifyAll();
 	}
 	
+	///
 	private void handleRequest(bool _send, string _body, HTTPServerResponse res)
 	{
 		if(!_send)
@@ -129,43 +132,45 @@ public:
 				auto arr = _body[2..$-2];
 
 				foreach(e; splitter(arr, regex(q"{","}")))
-					OnData(e);
+					m_onData(e);
 			}
 
-			res.statusCode = 202;
+			res.statusCode = 204;
 			res.writeVoidBody();
 		}
 	}
 
+	///
 	private void longPoll(HTTPServerResponse res)
 	{ 
 		if(m_outQueue.length > 0)
 		{
-			FlushQueue(res);
+			flushQueue(res);
 		}
 		else
 		{
-			writefln("long poll");
+			//debug writefln("long poll");
 
 			synchronized(m_timeoutMutex)
-				m_pollCondition.wait(10.seconds);
+				m_pollCondition.wait(m_options.heartbeat_delay.seconds);
 		
 			if(m_outQueue.length > 0)
 			{
-				writefln("long poll signaled");
+				//debug writefln("long poll signaled");
 
-				FlushQueue(res);
+				flushQueue(res);
 			}
 			else
 			{
-				writefln("heartbeat");
+				//debug writefln("heartbeat");
 
-				res.writeBody("h");
+				res.writeBody("h\n");
 			}
 		}
 	}
 	
-	private void FlushQueue(HTTPServerResponse res)
+	///
+	private void flushQueue(HTTPServerResponse res)
 	{
 		string outbody = "a[";
 
@@ -173,26 +178,43 @@ public:
 			outbody ~= '"'~s~'"'~',';
 
 		outbody = outbody[0..$-1];
-		outbody ~= ']';
+		outbody ~= "]\n";
 
-		writefln("flush: '%s'",outbody);
+		//debug writefln("flush: '%s'",outbody);
 
 		res.writeBody(outbody);
 
 		m_outQueue.length = 0;
 	}
 
-//private:
-	EventOnClose OnClose;
-	EventOnMsg OnData;
+	///
+	alias void delegate() EventOnClose;
+	///
+	alias void delegate(string _msg) EventOnMsg;
+
+	///
+	@property public void onClose(EventOnClose _callback) { m_onClose = _callback; }
+	///
+	@property public void onData(EventOnMsg _callback) { m_onData = _callback; }
+
+	///
+	@property public const string remoteAddress() {return m_remotePeer;}
+
 private:
-	TaskMutex m_timeoutMutex;
-	TaskCondition m_pollCondition;
-	string[] m_outQueue;
+	EventOnClose	m_onClose;
+	EventOnMsg		m_onData;
+
+	string			m_remotePeer;
+	TaskMutex		m_timeoutMutex;
+	TaskCondition	m_pollCondition;
+	string[]		m_outQueue;
+	SockJS.Options*	m_options;
 }
-	
+
+///
 struct SockJS
 {
+	///
 	struct Options
 	{
 		string prefix;
@@ -200,6 +222,7 @@ struct SockJS
 		int disconnect_delay = 5_000;
 	}
 
+	///
 	public static Server createServer(Options _options)
 	{
 		return new Server(_options);

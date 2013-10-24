@@ -5,7 +5,6 @@ import std.stdio;
 void logRequest(HTTPServerRequest req, HTTPServerResponse res)
 {
 	writefln("url: '%s' peer: '%s' method: '%s'", req.requestURL, req.peer, req.method);
-	//writefln("-> header: '%s'", req.headers);
 }
 
 static this()
@@ -21,18 +20,18 @@ static this()
 		.any("*", &logRequest)
 		.any("*", &sjs.handleRequest);
 	
-	sjs.OnConnection = (Connection conn) {
-		writefln("new conn: ", conn.remoteAddress);
+	sjs.onConnection = (Connection conn) {
+		writefln("new conn: %s", conn.remoteAddress);
 		
-		conn.OnData = (string message) {
+		conn.onData = (string message) {
 		
 			writefln("msg: %s", message);
 			
 			conn.write(message);
 		};
 		
-		conn.OnClose = () {
-			writefln("closed conn: ", conn.remoteAddress);
+		conn.onClose = () {
+			writefln("closed conn: %s", conn.remoteAddress);
 		};
 	};
 	

@@ -13,6 +13,8 @@
    };
    sock.onmessage = function(e) {
        console.log('message', e.data);
+	   
+	   setTimeout(function(){sock.send(e.data);}, 2000);
    };
    sock.onclose = function() {
        console.log('close');
