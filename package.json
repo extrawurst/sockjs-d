@@ -1,6 +1,6 @@
 {
 	"name": "sockjs-d",
-	"version": "~master",
+	"version": "0.0.1",
 	"description": "SockJs implementation for vibe.d",
 	"homepage": "https://github.com/Extrawurst/sockjs-d",
 	"copyright": "Copyright © 2013, Stephan Dilly",
@@ -9,6 +9,6 @@
 		"Stephan Dilly"
 	],
 	"dependencies": {
-		"vibe-d": "~master"
+		"vibe-d": "0.7.17"
 	}
 }
