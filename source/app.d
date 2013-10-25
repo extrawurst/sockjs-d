@@ -32,7 +32,6 @@ static this()
 	auto router = new URLRouter;
 		router
 		.any("/index.html", vibe.http.fileserver.serveStaticFile("index.html",new HTTPFileServerSettings()))
-		.any("/sockjs.js", vibe.http.fileserver.serveStaticFile("sockjs.js",new HTTPFileServerSettings()))
 		.any("*", &logRequest)
 		.any("*", &sjs.handleRequest);
 	
