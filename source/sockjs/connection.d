@@ -67,7 +67,7 @@ public:
 	@property bool isOpen() { return m_state == State.Open; }
 
 	///
-	@property bool protocol() { return "xhr-polling"; }
+	@property string protocol() { return "xhr-polling"; }
 
 private:
 
