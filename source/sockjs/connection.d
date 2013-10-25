@@ -41,7 +41,7 @@ public:
 	}
 
 	///
-	void close(int _code, string _msg)
+	void close(int _code=0, string _msg="")
 	{
 		m_closeMsg.code = _code;
 		m_closeMsg.msg = _msg;
