@@ -76,7 +76,15 @@ private:
 	{
 		auto buffer = appender("a[");
 
-		foreach(s; m_outQueue)
+		string[] outQueue;
+
+		synchronized(m_queueMutex)
+		{
+			outQueue = m_outQueue.dup;
+			m_outQueue.length = 0;
+		}
+
+		foreach(s; outQueue)
 		{
 			buffer ~= '"';
 			buffer ~= s;
@@ -90,9 +98,6 @@ private:
 		//debug writefln("flush: '%s'",outbody);
 
 		res.writeBody(outbody);
-
-		synchronized(m_queueMutex)
-			m_outQueue.length = 0;
 	}
 
 	///
@@ -108,7 +113,8 @@ private:
 	///
 	void longPoll(HTTPServerResponse res)
 	{
-		m_timeoutTimer.rearm(m_options.disconnect_delay.msecs);
+		scope(exit) m_timeoutTimer.rearm(m_options.disconnect_delay.msecs);
+		m_timeoutTimer.stop();
 
 		if(isDataPending)
 		{
