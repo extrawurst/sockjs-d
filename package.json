@@ -9,6 +9,6 @@
 		"Stephan Dilly"
 	],
 	"dependencies": {
-		"vibe-d": "0.7.17"
+		"vibe-d": ">=0.7.17"
 	}
 }
