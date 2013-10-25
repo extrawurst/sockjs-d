@@ -192,7 +192,7 @@ private:
 			}
 
 			res.statusCode = 204;
-			res.writeVoidBody();
+			res.writeBody("");
 		}
 	}
 
