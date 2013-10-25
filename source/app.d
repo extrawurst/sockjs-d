@@ -10,9 +10,12 @@ void logRequest(HTTPServerRequest req, HTTPServerResponse res)
 
 static this()
 {
-	SockJS.Options options;
-	options.prefix = "/echo/";
-	auto sjs = SockJS.createServer(options);
+	SockJS.Options opt = {
+		heartbeat_delay : 4_000,
+		prefix : "/echo/"
+	};
+
+	auto sjs = SockJS.createServer(opt);
 
 	sjs.onConnection = (Connection conn) {
 		writefln("new conn: %s", conn.remoteAddress);

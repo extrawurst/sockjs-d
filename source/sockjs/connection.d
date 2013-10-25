@@ -23,6 +23,8 @@ public:
 		m_pollCondition = new TaskCondition(m_timeoutMutex);
 
 		m_timeoutTimer = getEventDriver().createTimer(&timeout);
+		m_pollTimeout = getEventDriver().createTimer(&pollTimeout);
+
 		resetTimeout();
 	}
 
@@ -123,10 +125,11 @@ private:
 		}
 		else
 		{
-			//debug writefln("long poll");
+			m_pollTimeout.rearm(m_options.heartbeat_delay.msecs);
+			
+			synchronized(m_timeoutMutex) m_pollCondition.wait();
 
-			synchronized(m_timeoutMutex)
-				m_pollCondition.wait(m_options.heartbeat_delay.msecs);
+			m_pollTimeout.stop();
 
 			if(m_state == State.Closing)
 			{
@@ -160,6 +163,12 @@ private:
 	void resetTimeout()
 	{
 		m_timeoutTimer.rearm(m_options.disconnect_delay.msecs);
+	}
+
+	///
+	void pollTimeout()
+	{
+		m_pollCondition.notifyAll();
 	}
 
 	///
@@ -213,4 +222,5 @@ private:
 	State			m_state = State.Open;
 	CloseMsg		m_closeMsg;
 	Timer			m_timeoutTimer;
+	Timer			m_pollTimeout;
 }
