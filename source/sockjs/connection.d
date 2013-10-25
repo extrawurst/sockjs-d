@@ -114,6 +114,7 @@ private:
 	void longPoll(HTTPServerResponse res)
 	{
 		scope(exit) resetTimeout();
+
 		m_timeoutTimer.stop();
 
 		if(isDataPending)
@@ -125,7 +126,7 @@ private:
 			//debug writefln("long poll");
 
 			synchronized(m_timeoutMutex)
-				m_pollCondition.wait(m_options.heartbeat_delay.seconds);
+				m_pollCondition.wait(m_options.heartbeat_delay.msecs);
 
 			if(m_state == State.Closing)
 			{
