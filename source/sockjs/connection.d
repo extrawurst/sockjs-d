@@ -113,7 +113,7 @@ private:
 	///
 	void longPoll(HTTPServerResponse res)
 	{
-		scope(exit) m_timeoutTimer.rearm(m_options.disconnect_delay.msecs);
+		scope(exit) resetTimeout();
 		m_timeoutTimer.stop();
 
 		if(isDataPending)
