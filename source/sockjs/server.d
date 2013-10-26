@@ -1,5 +1,7 @@
 module sockjs.server;
 
+import std.stdio;
+
 import vibe.d;
 import sockjs.sockjs:SockJS;
 import sockjs.connection;
@@ -41,6 +43,9 @@ public:
 	///
 	@property void onConnection(EventOnConnection _callback) { m_onConnection = _callback; }
 
+	///
+	@property const(SockJS.Options)* options() const { return &m_options; }
+
 private:
 	EventOnConnection	m_onConnection;
 	SockJS.Options		m_options;
@@ -78,7 +83,7 @@ private:
 			{
 				if(method == "xhr")
 				{
-					auto newConn = new Connection(&m_options, _remotePeer);
+					auto newConn = new Connection(this, _remotePeer, userId);
 
 					m_onConnection(newConn);
 
@@ -92,5 +97,16 @@ private:
 		}
 		else
 			throw new Exception("wrong param count");
+	}
+
+	///
+	package void connectionClosed(Connection _conn)
+	{
+		if(_conn.userId in m_connections)
+		{
+			//debug writefln("conn removed");
+
+			m_connections.remove(_conn.userId);
+		}
 	}
 }

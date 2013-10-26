@@ -12,6 +12,7 @@ struct SockJS
 		string prefix;
 		int heartbeat_delay = 25_000;
 		int disconnect_delay = 5_000;
+		int connection_blocking = 20_000;
 	}
 
 	///

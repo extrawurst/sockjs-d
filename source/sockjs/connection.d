@@ -14,16 +14,18 @@ public class Connection
 public:
 
 	///
-	this(SockJS.Options* _options, string _remotePeer)
+	this(Server _server, string _remotePeer, string _userId)
 	{
+		m_userId = _userId;
 		m_remotePeer = _remotePeer;
-		m_options = _options;
+		m_server = _server;
 		m_queueMutex = new TaskMutex;
 		m_timeoutMutex = new TaskMutex;
 		m_pollCondition = new TaskCondition(m_timeoutMutex);
 
 		m_timeoutTimer = getEventDriver().createTimer(&timeout);
 		m_pollTimeout = getEventDriver().createTimer(&pollTimeout);
+		m_closeTimer = getEventDriver().createTimer(&closeTimeout);
 
 		resetTimeout();
 	}
@@ -64,9 +66,11 @@ public:
 	@property void onData(EventOnMsg _callback) { m_onData = _callback; }
 
 	///
-	@property const string remoteAddress() {return m_remotePeer;}
+	@property const string userId() { return m_userId; }
 	///
-	@property bool isOpen() { return m_state == State.Open; }
+	@property const string remoteAddress() { return m_remotePeer; }
+	///
+	@property const bool isOpen() { return m_state == State.Open; }
 
 	///
 	@property string protocol() { return "xhr-polling"; }
@@ -110,6 +114,8 @@ private:
 		m_timeoutTimer.stop();
 
 		m_state = State.Closing;
+
+		m_closeTimer.rearm(m_server.options.connection_blocking.msecs);
 	}
 
 	///
@@ -125,13 +131,13 @@ private:
 		}
 		else
 		{
-			m_pollTimeout.rearm(m_options.heartbeat_delay.msecs);
+			m_pollTimeout.rearm(m_server.options.heartbeat_delay.msecs);
 			
 			synchronized(m_timeoutMutex) m_pollCondition.wait();
 
 			m_pollTimeout.stop();
 
-			if(m_state == State.Closing)
+			if(m_state == State.Closing || m_state == State.Closed)
 			{
 				try{
 					res.writeBody(format(q"{c[%s,"%s"]\n}", m_closeMsg.code, m_closeMsg.msg));
@@ -146,7 +152,7 @@ private:
 				if(isDataPending)
 				{
 					//debug writefln("long poll signaled");
-
+ 
 					flushQueue(res);
 				}
 				else
@@ -162,13 +168,19 @@ private:
 	///
 	void resetTimeout()
 	{
-		m_timeoutTimer.rearm(m_options.disconnect_delay.msecs);
+		m_timeoutTimer.rearm(m_server.options.disconnect_delay.msecs);
 	}
 
 	///
 	void pollTimeout()
 	{
 		m_pollCondition.notifyAll();
+	}
+
+	///
+	void closeTimeout()
+	{
+		m_server.connectionClosed(this);
 	}
 
 	///
@@ -183,16 +195,24 @@ private:
 		}
 		else
 		{
-			if(_body.length > 4)
+			if(isOpen)
 			{
-				auto arr = _body[2..$-2];
+				if(_body.length > 4)
+				{
+					auto arr = _body[2..$-2];
 
-				foreach(e; splitter(arr, regex(q"{","}")))
-					m_onData(e);
+					foreach(e; splitter(arr, regex(q"{","}")))
+						m_onData(e);
+				}
+
+				res.statusCode = 204;
+				res.writeBody("");
 			}
-
-			res.statusCode = 204;
-			res.writeBody("");
+			else
+			{
+				res.statusCode = 404;
+				res.writeBody("");
+			}
 		}
 	}
 
@@ -213,14 +233,16 @@ private:
 	EventOnClose	m_onClose;
 	EventOnMsg		m_onData;
 
+	string			m_userId;
 	string			m_remotePeer;
 	TaskMutex		m_timeoutMutex;
 	TaskMutex		m_queueMutex;
 	TaskCondition	m_pollCondition;
 	string[]		m_outQueue;
-	SockJS.Options*	m_options;
+	Server			m_server;
 	State			m_state = State.Open;
 	CloseMsg		m_closeMsg;
 	Timer			m_timeoutTimer;
 	Timer			m_pollTimeout;
+	Timer			m_closeTimer;
 }
