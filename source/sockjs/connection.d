@@ -195,8 +195,12 @@ private:
 		}
 		else
 		{
+			scope(exit) res.writeBody("");
+
 			if(isOpen)
 			{
+				scope(exit) res.statusCode = 204;
+
 				if(_body.length > 4)
 				{
 					auto arr = _body[2..$-2];
@@ -204,15 +208,9 @@ private:
 					foreach(e; splitter(arr, regex(q"{","}")))
 						m_onData(e);
 				}
-
-				res.statusCode = 204;
-				res.writeBody("");
 			}
 			else
-			{
 				res.statusCode = 404;
-				res.writeBody("");
-			}
 		}
 	}
 
