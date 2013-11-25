@@ -8,6 +8,9 @@ import std.array;
 
 import sockjs.sockjs;
 
+//version = simulatePollErrors;
+//version = simulateSendErrors;
+
 ///
 public class Connection
 {
@@ -121,6 +124,22 @@ private:
 	///
 	void longPoll(HTTPServerResponse res)
 	{
+		version(simulatePollErrors)
+		{
+			static int pollCount=0;
+
+			pollCount++;
+
+			debug writefln("pollcount: %s",pollCount);
+
+			if(pollCount % 3 == 0)
+			{
+				debug writefln("SIMULATE POLL ERROR");
+
+				throw new Exception("simulate packet loss");
+			}
+		}
+
 		scope(exit) resetTimeout();
 
 		m_timeoutTimer.stop();
@@ -132,7 +151,7 @@ private:
 		else
 		{
 			m_pollTimeout.rearm(m_server.options.heartbeat_delay.msecs);
-			
+
 			synchronized(m_timeoutMutex) m_pollCondition.wait();
 
 			m_pollTimeout.stop();
@@ -152,7 +171,7 @@ private:
 				if(isDataPending)
 				{
 					//debug writefln("long poll signaled");
- 
+
 					flushQueue(res);
 				}
 				else
@@ -195,6 +214,22 @@ private:
 		}
 		else
 		{
+			version(simulateSendErrors)
+			{
+				static int sendCount=0;
+
+				sendCount++;
+
+				debug writefln("sendcount: %s",sendCount);
+
+				if(sendCount % 3 == 0)
+				{
+					debug writefln("SIMULATE SEND ERROR");
+
+					throw new Exception("simulate packet loss");
+				}
+			}
+
 			scope(exit) res.writeBody("");
 
 			if(isOpen)
