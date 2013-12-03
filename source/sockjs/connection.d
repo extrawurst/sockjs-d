@@ -136,7 +136,7 @@ private:
 			{
 				debug writefln("SIMULATE POLL ERROR");
 
-				throw new Exception("simulate packet loss");
+				throw new SockJsException("simulate packet loss");
 			}
 		}
 

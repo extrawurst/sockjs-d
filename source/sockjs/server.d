@@ -7,6 +7,16 @@ import sockjs.sockjs:SockJS;
 import sockjs.connection;
 
 ///
+class SockJsException : Exception
+{
+	///
+	public this(string _s)
+	{
+		super(_s);
+	}
+}
+
+///
 public class Server
 {
 public:
@@ -20,6 +30,8 @@ public:
 	///
 	void handleRequest(HTTPServerRequest req, HTTPServerResponse res)
 	{
+		scope(failure) logCritical("handle request failed");
+
 		auto url = req.requestURL;
 
 		if(url.length >= m_options.prefix.length)
@@ -32,7 +44,11 @@ public:
 
 				string _body = cast(string)req.bodyReader.readAll();
 
-				handleSockJs(elements,_body,res,req.peer);
+				try handleSockJs(elements,_body,res,req.peer);
+				catch(SockJsException e)
+				{
+					logError("handleSockJs failed: %s",e);
+				}
 			}
 		}
 	}
@@ -78,10 +94,14 @@ private:
 
 				if(conn.isOpen)
 					conn.handleRequest(method == "xhr_send",_body,_res);
+				else
+					throw new SockJsException("data on closed connection");
 			}
 			else
 			{
-				if(method == "xhr")
+				if(method != "xhr")
+					throw new SockJsException("wrong connect method");
+				else
 				{
 					auto newConn = new Connection(this, _remotePeer, userId);
 
@@ -91,12 +111,10 @@ private:
 
 					_res.writeBody("o\n","application/javascript; charset=UTF-8");
 				}
-				else
-					throw new Exception("wrong connect method");
 			}
 		}
 		else
-			throw new Exception("wrong param count");
+			throw new SockJsException("wrong param count");
 	}
 
 	///
