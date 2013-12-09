@@ -230,11 +230,13 @@ private:
 				}
 			}
 
+			res.statusCode = 404;
+
 			scope(exit) res.writeBody("");
 
 			if(isOpen)
 			{
-				scope(exit) res.statusCode = 204;
+				scope(success) res.statusCode = 204;
 
 				if(_body.length > 4)
 				{
@@ -244,8 +246,6 @@ private:
 						m_onData(e);
 				}
 			}
-			else
-				res.statusCode = 404;
 		}
 	}
 

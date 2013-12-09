@@ -48,6 +48,9 @@ public:
 				catch(SockJsException e)
 				{
 					logError("handleSockJs failed: %s",e);
+
+					res.statusCode = 404;
+					res.writeBody("");
 				}
 			}
 		}
