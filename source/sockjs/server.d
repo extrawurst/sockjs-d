@@ -126,11 +126,14 @@ private:
 	///
 	package void connectionClosed(Connection _conn)
 	{
+
 		if(_conn.userId in m_connections)
 		{
 			m_connections.remove(_conn.userId);
 
 			//logInfo("[sockjs] closed connection (count: %s)",m_connections.length);
 		}
+
+		_conn.destroy();
 	}
 }

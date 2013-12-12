@@ -35,6 +35,23 @@ public:
 	}
 
 	///
+	public void destroy()
+	{
+		m_timeoutTimer.stop();
+		m_pollTimeout.stop();
+		m_closeTimer.stop();
+		
+		m_userId = null;
+		
+		m_server = null;
+		m_remotePeer = null;
+		
+		m_queueMutex = null;
+		m_timeoutMutex = null;
+		m_pollCondition = null;
+	}
+
+	///
 	void write(string _msg)
 	{
 		if(isOpen)
@@ -54,9 +71,7 @@ public:
 		m_closeMsg.code = _code;
 		m_closeMsg.msg = _msg;
 
-		m_state = State.Closing;
-
-		m_pollCondition.notifyAll();
+		startClosing();
 	}
 
 	///
@@ -120,9 +135,16 @@ private:
 
 		m_timeoutTimer.stop();
 
+		startClosing();
+	}
+
+	void startClosing()
+	{
 		m_state = State.Closing;
 
 		m_closeTimer.rearm(m_server.options.connection_blocking.msecs);
+
+		m_pollCondition.notifyAll();
 	}
 
 	///
@@ -162,12 +184,10 @@ private:
 
 			if(m_state == State.Closing || m_state == State.Closed)
 			{
-				try{
-					SockJsSyntax.writeClose(res, m_closeMsg);
-				}
+				try SockJsSyntax.writeClose(res, m_closeMsg);
 				catch(Throwable e)
 				{
-					debug writefln("closing error: %s",e);
+					logError("closing error: %s",e);
 				}
 			}
 			else
