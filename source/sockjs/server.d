@@ -5,6 +5,7 @@ import std.stdio;
 import vibe.d;
 import sockjs.sockjs:SockJS;
 import sockjs.connection;
+import sockjs.sockjsSyntax;
 
 ///
 class SockJsException : Exception
@@ -83,7 +84,7 @@ private:
 
 		if(_urlElements.length == 1 && _urlElements[0] == "info")
 		{
-			_res.writeBody(q"{{"websocket":"false","origins":["*:*"],"cookie_needed":"false"}}","application/json; charset=UTF-8");
+			SockJsSyntax.writeInfo(_res);
 		}
 		else if(_urlElements.length == 3)
 		{
@@ -98,7 +99,7 @@ private:
 				if(conn.isOpen)
 					conn.handleRequest(method == "xhr_send",_body,_res);
 				else
-					throw new SockJsException("data on closed connection");
+					SockJsSyntax.writeClose(_res, conn.closeMsg);
 			}
 			else
 			{
@@ -112,7 +113,9 @@ private:
 
 					m_connections[userId] = newConn;
 
-					_res.writeBody("o\n","application/javascript; charset=UTF-8");
+					//logInfo("[sockjs] new connection (count: %s)",m_connections.length);
+
+					SockJsSyntax.writeOpen(_res);
 				}
 			}
 		}
@@ -125,9 +128,9 @@ private:
 	{
 		if(_conn.userId in m_connections)
 		{
-			//debug writefln("conn removed");
-
 			m_connections.remove(_conn.userId);
+
+			//logInfo("[sockjs] closed connection (count: %s)",m_connections.length);
 		}
 	}
 }

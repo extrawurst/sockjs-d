@@ -7,6 +7,7 @@ import std.regex;
 import std.array;
 
 import sockjs.sockjs;
+import sockjs.sockjsSyntax;
 
 //version = simulatePollErrors;
 //version = simulateSendErrors;
@@ -77,6 +78,9 @@ public:
 
 	///
 	@property string protocol() { return "xhr-polling"; }
+
+	///
+	package @property CloseMsg closeMsg() const { return m_closeMsg; }
 
 private:
 
@@ -159,7 +163,7 @@ private:
 			if(m_state == State.Closing || m_state == State.Closed)
 			{
 				try{
-					res.writeBody(format(q"{c[%s,"%s"]\n}", m_closeMsg.code, m_closeMsg.msg));
+					SockJsSyntax.writeClose(res, m_closeMsg);
 				}
 				catch(Throwable e)
 				{
@@ -176,9 +180,7 @@ private:
 				}
 				else
 				{
-					//debug writefln("heartbeat");
-
-					res.writeBody("h\n");
+					SockJsSyntax.writeHeartbeat(res);
 				}
 			}
 		}
@@ -250,7 +252,8 @@ private:
 	}
 
 private:
-	struct CloseMsg
+
+	public struct CloseMsg
 	{
 		int		code;
 		string	msg;
