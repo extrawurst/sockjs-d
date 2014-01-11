@@ -142,9 +142,11 @@ private:
 	{
 		m_state = State.Closing;
 
-		m_closeTimer.rearm(m_server.options.connection_blocking.msecs);
+		if(m_server !is null)
+			m_closeTimer.rearm(m_server.options.connection_blocking.msecs);
 
-		m_pollCondition.notifyAll();
+		if(m_pollCondition !is null)
+			m_pollCondition.notifyAll();
 	}
 
 	///
@@ -209,19 +211,23 @@ private:
 	///
 	void resetTimeout()
 	{
-		m_timeoutTimer.rearm(m_server.options.disconnect_delay.msecs);
+		if(m_timeoutTimer !is null &&
+		   m_server !is null)
+			m_timeoutTimer.rearm(m_server.options.disconnect_delay.msecs);
 	}
 
 	///
 	void pollTimeout()
 	{
-		m_pollCondition.notifyAll();
+		if(m_pollCondition !is null)
+			m_pollCondition.notifyAll();
 	}
 
 	///
 	void closeTimeout()
 	{
-		m_server.connectionClosed(this);
+		if(m_server !is null)
+			m_server.connectionClosed(this);
 	}
 
 	///
