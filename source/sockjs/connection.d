@@ -27,9 +27,9 @@ public:
 		m_timeoutMutex = new TaskMutex;
 		m_pollCondition = new TaskCondition(m_timeoutMutex);
 
-		m_timeoutTimer = getEventDriver().createTimer(&timeout);
-		m_pollTimeout = getEventDriver().createTimer(&pollTimeout);
-		m_closeTimer = getEventDriver().createTimer(&closeTimeout);
+		m_timeoutTimer = createTimer(&timeout);
+		m_pollTimeout = createTimer(&pollTimeout);
+		m_closeTimer = createTimer(&closeTimeout);
 
 		resetTimeout();
 	}
@@ -211,8 +211,7 @@ private:
 	///
 	void resetTimeout()
 	{
-		if(m_timeoutTimer !is null &&
-		   m_server !is null)
+		if(m_timeoutTimer && m_server !is null)
 			m_timeoutTimer.rearm(m_server.options.disconnect_delay.msecs);
 	}
 
