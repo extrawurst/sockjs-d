@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/extrawurst/sockjs-d.png)](https://travis-ci.org/extrawurst/sockjs-d.d)
+[![Build Status](https://api.travis-ci.org/Extrawurst/sockjs-d.png)](https://travis-ci.org/Extrawurst/sockjs-d)
 
 sockjs-d
 ========
