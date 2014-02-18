@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/extrawurst/sockjs-d.png)](https://travis-ci.org/extrawurst/sockjs-d.d)
+
 sockjs-d
 ========
 
