@@ -27,9 +27,9 @@ public:
 		m_timeoutMutex = new TaskMutex;
 		m_pollCondition = new TaskCondition(m_timeoutMutex);
 
-		m_timeoutTimer = createTimer(&timeout);
-		m_pollTimeout = createTimer(&pollTimeout);
-		m_closeTimer = createTimer(&closeTimeout);
+		//m_timeoutTimer = createTimer(&timeout);
+		//m_pollTimeout = createTimer(&pollTimeout);
+		//m_closeTimer = createTimer(&closeTimeout);
 
 		resetTimeout();
 	}
@@ -144,7 +144,10 @@ private:
 		m_state = State.Closing;
 
 		if(m_server !is null)
+		{
+			m_closeTimer = createTimer(&closeTimeout);
 			m_closeTimer.rearm(m_server.options.connection_blocking.msecs);
+		}
 
 		if(m_pollCondition !is null)
 			m_pollCondition.notifyAll();
@@ -179,6 +182,7 @@ private:
 		}
 		else
 		{
+			m_pollTimeout = createTimer(&pollTimeout);
 			m_pollTimeout.rearm(m_server.options.heartbeat_delay.msecs);
 
 			synchronized(m_timeoutMutex) m_pollCondition.wait();
@@ -213,7 +217,10 @@ private:
 	void resetTimeout()
 	{
 		if(m_timeoutTimer && m_server !is null)
+		{
+			m_timeoutTimer = createTimer(&timeout);
 			m_timeoutTimer.rearm(m_server.options.disconnect_delay.msecs);
+		}
 	}
 
 	///
