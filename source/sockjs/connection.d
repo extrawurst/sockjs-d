@@ -27,9 +27,9 @@ public:
 		m_timeoutMutex = new TaskMutex;
 		m_pollCondition = new TaskCondition(m_timeoutMutex);
 
-		//m_timeoutTimer = createTimer(&timeout);
-		//m_pollTimeout = createTimer(&pollTimeout);
-		//m_closeTimer = createTimer(&closeTimeout);
+		m_timeoutTimer = createTimer(&timeout);
+		m_pollTimeout = createTimer(&pollTimeout);
+		m_closeTimer = createTimer(&closeTimeout);
 
 		resetTimeout();
 	}
