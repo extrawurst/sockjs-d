@@ -131,7 +131,8 @@ private:
 	///
 	void timeout()
 	{
-		m_onClose();
+		if(m_onClose)
+			m_onClose();
 
 		m_timeoutTimer.stop();
 
@@ -270,7 +271,10 @@ private:
 					auto arr = _body[2..$-2];
 
 					foreach(e; splitter(arr, regex(q"{","}")))
-						m_onData(e);
+					{
+						if(m_onData)
+							m_onData(e);
+					}
 				}
 			}
 		}
