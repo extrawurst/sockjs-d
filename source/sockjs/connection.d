@@ -139,6 +139,7 @@ private:
 		startClosing();
 	}
 
+	///
 	void startClosing()
 	{
 		m_state = State.Closing;
@@ -282,12 +283,14 @@ private:
 
 private:
 
+	///
 	public struct CloseMsg
 	{
 		int		code;
 		string	msg;
 	}
 
+	///
 	enum State
 	{
 		Open,
