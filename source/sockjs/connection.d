@@ -68,10 +68,13 @@ public:
 	///
 	void close(int _code=0, string _msg="")
 	{
-		m_closeMsg.code = _code;
-		m_closeMsg.msg = _msg;
+		if(m_state == State.Open)
+		{
+			m_closeMsg.code = _code;
+			m_closeMsg.msg = _msg;
 
-		startClosing();
+			doClose();
+		}
 	}
 
 	///
@@ -131,18 +134,18 @@ private:
 	///
 	void timeout()
 	{
-		if(m_onClose)
-			m_onClose();
-
 		m_timeoutTimer.stop();
 
-		startClosing();
+		doClose();
 	}
 
 	///
-	void startClosing()
+	void doClose()
 	{
-		m_state = State.Closing;
+		if(m_onClose && m_state==State.Open)
+			m_onClose();
+
+		m_state = State.Closed;
 
 		if(m_server !is null)
 			m_closeTimer.rearm(m_server.options.connection_blocking.msecs);
@@ -186,7 +189,7 @@ private:
 
 			m_pollTimeout.stop();
 
-			if(m_state == State.Closing || m_state == State.Closed)
+			if(m_state == State.Closed)
 			{
 				try SockJsSyntax.writeClose(res, m_closeMsg);
 				catch(Throwable e)
@@ -294,7 +297,6 @@ private:
 	enum State
 	{
 		Open,
-		Closing,
 		Closed,
 	}
 
