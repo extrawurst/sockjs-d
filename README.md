@@ -1,4 +1,5 @@
 [![Build Status](https://api.travis-ci.org/Extrawurst/sockjs-d.png)](https://travis-ci.org/Extrawurst/sockjs-d)
+[![Analytics](https://ga-beacon.appspot.com/UA-49903757-1/sockjs-d/readme)](https://github.com/Extrawurst/sockjs-d)
 
 sockjs-d
 ========
