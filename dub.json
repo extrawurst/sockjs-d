@@ -2,7 +2,7 @@
 	"name": "sockjs-d",
 	"description": "SockJs implementation for vibe.d",
 	"homepage": "https://github.com/Extrawurst/sockjs-d",
-	"copyright": "Copyright © 2014, Stephan Dilly",
+	"copyright": "Copyright © 2016, Stephan Dilly",
 	"license": "MIT",
 	"authors": [
 		"Stephan Dilly"
@@ -10,5 +10,5 @@
 	"dependencies": {
 		"vibe-d": "~>0.7"
 	},
-	"versions": ["VibeDefaultMain"]
+    "versions": ["VibeDefaultMain"]
 }
